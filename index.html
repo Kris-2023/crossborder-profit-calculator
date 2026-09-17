@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="面向跨境电商的单品毛利与净利测算工具，支持多平台、人民币/美元定价、金额/比例成本与本地导出。">
+  <title>跨境电商利润模型计算器</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230e0f0c'/%3E%3Cpath d='M16 18h32v8H26v8h18v8H26v8H16z' fill='%23a8f578'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#calculatorWorkspace">跳到计算区</a>
+
+  <header class="app-header">
+    <div class="brand-lockup" aria-label="Crossborder P&L">
+      <span class="brand-mark" aria-hidden="true">PL</span>
+      <span>
+        <strong>跨境利润模型</strong>
+        <small>Cross-border P&amp;L</small>
+      </span>
+    </div>
+    <div class="header-meta">
+      <span class="privacy-pill">本地计算 · 不上传数据</span>
+      <button class="button button-quiet" id="resetSampleButton" type="button">恢复示例</button>
+    </div>
+  </header>
+
+  <main id="calculatorWorkspace" class="workspace">
+    <section class="workspace-intro" aria-labelledby="pageTitle">
+      <div>
+        <p class="eyebrow">SKU PROFIT MODEL</p>
+        <h1 id="pageTitle">跨境电商利润模型计算器</h1>
+      </div>
+      <p>按单件成交口径，统一折算定价、推广、物流、平台、产品与分摊成本。百分比均以售价为基数。</p>
+    </section>
+
+    <div id="validationBanner" class="validation-banner" role="alert" hidden></div>
+
+    <div class="workspace-grid">
+      <div class="configure-column">
+        <section class="panel setup-panel" aria-labelledby="setupTitle">
+          <div class="section-heading">
+            <div>
+              <span class="section-index">01</span>
+              <h2 id="setupTitle">商品与币种</h2>
+            </div>
+            <p>平台仅作业务标记，不会擅自填充佣金费率。</p>
+          </div>
+
+          <div class="setup-grid">
+            <label class="field">
+              <span>平台</span>
+              <select id="platformSelect">
+                <option>Amazon</option>
+                <option>Walmart</option>
+                <option>Shopify</option>
+                <option>Wayfair</option>
+                <option>Temu</option>
+                <option>TikTok Shop</option>
+                <option>eBay</option>
+                <option>其他</option>
+              </select>
+            </label>
+
+            <label class="field" id="customPlatformField" hidden>
+              <span>自定义平台</span>
+              <input id="customPlatformInput" type="text" maxlength="60" placeholder="输入平台名称">
+            </label>
+
+            <label class="field field-wide">
+              <span>产品型号</span>
+              <input id="productModelInput" type="text" maxlength="120" autocomplete="off" placeholder="如 SKU-001">
+            </label>
+
+            <label class="field">
+              <span>定价</span>
+              <span class="compound-input">
+                <input id="priceAmountInput" type="number" min="0" step="0.01" inputmode="decimal" aria-describedby="priceConvertedText">
+                <select id="priceCurrencySelect" aria-label="定价输入币种">
+                  <option value="USD">USD</option>
+                  <option value="CNY">CNY</option>
+                </select>
+              </span>
+              <small id="priceConvertedText">—</small>
+            </label>
+
+            <label class="field">
+              <span>平台 / 报告币种</span>
+              <select id="settlementCurrencySelect">
+                <option value="USD">USD 美元</option>
+                <option value="CNY">CNY 人民币</option>
+                <option value="EUR">EUR 欧元</option>
+                <option value="GBP">GBP 英镑</option>
+                <option value="CAD">CAD 加元</option>
+                <option value="JPY">JPY 日元</option>
+                <option value="AUD">AUD 澳元</option>
+                <option value="MXN">MXN 墨西哥比索</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>美元汇率</span>
+              <span class="rate-input"><b>1 USD =</b><input id="usdCnyRateInput" type="number" min="0.000001" step="0.0001" inputmode="decimal"><b>CNY</b></span>
+              <small>默认 6.78，可按当期汇率修改。</small>
+            </label>
+
+            <label class="field" id="settlementRateField" hidden>
+              <span>平台币汇率</span>
+              <span class="rate-input"><b>1 <em id="settlementRateCode">EUR</em> =</b><input id="settlementCnyRateInput" type="number" min="0.000001" step="0.0001" inputmode="decimal" placeholder="必填"><b>CNY</b></span>
+              <small>非 USD/CNY 币种请手动填写当期汇率。</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel ledger-panel" aria-labelledby="ledgerTitle">
+          <div class="section-heading">
+            <div>
+              <span class="section-index">02</span>
+              <h2 id="ledgerTitle">直接成本</h2>
+            </div>
+            <p>每行可选“金额”或“比例”作为唯一计算基准。</p>
+          </div>
+
+          <div class="ledger-head" aria-hidden="true">
+            <span>成本项</span>
+            <span>输入方式</span>
+            <span>输入值</span>
+            <span>折算结果</span>
+          </div>
+
+          <div id="directCostLedger" class="cost-ledger"></div>
+
+          <div class="product-cost-row">
+            <div class="cost-name">
+              <span class="cost-group">平台及产品成本</span>
+              <strong>产品成本</strong>
+            </div>
+            <div class="product-cost-note">金额输入</div>
+            <label class="compact-field">
+              <span class="sr-only">产品成本金额</span>
+              <input id="productCostInput" type="number" min="0" step="0.01" inputmode="decimal">
+              <select id="productCostCurrencySelect" aria-label="产品成本币种">
+                <option value="USD">USD</option>
+                <option value="CNY">CNY</option>
+              </select>
+            </label>
+            <div class="cost-derived">
+              <strong id="productCostConverted">—</strong>
+              <span id="productCostPercent">—</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel allocation-panel" aria-labelledby="allocationTitle">
+          <div class="section-heading">
+            <div>
+              <span class="section-index">03</span>
+              <h2 id="allocationTitle">分摊成本</h2>
+            </div>
+            <p>人力、研发与品牌投入按售价百分比分摊，用于从毛利推导净利。</p>
+          </div>
+          <div id="allocationLedger" class="allocation-ledger"></div>
+        </section>
+
+        <p class="calculation-note">口径：售价 − 推广/物流/平台/产品成本 = 毛利；毛利 − 分摊成本 = 净利润。空白可选成本按 0 计算。</p>
+      </div>
+
+      <aside class="results-column" aria-labelledby="resultTitle">
+        <section class="result-card" id="resultCard">
+          <div class="result-topline">
+            <div>
+              <p class="eyebrow">LIVE RESULT</p>
+              <h2 id="resultTitle">利润结果</h2>
+            </div>
+            <span id="resultState" class="result-state">已完成</span>
+          </div>
+
+          <div class="revenue-line">
+            <span>平台币定价</span>
+            <strong id="revenueValue">—</strong>
+          </div>
+
+          <div class="profit-hero" id="netProfitHero">
+            <span>净利润</span>
+            <strong id="netProfitValue">—</strong>
+            <div>
+              <b id="netMarginValue">—</b>
+              <span id="profitStateText">等待计算</span>
+            </div>
+          </div>
+
+          <div class="metric-grid">
+            <div>
+              <span>毛利</span>
+              <strong id="grossProfitValue">—</strong>
+              <small id="grossMarginValue">—</small>
+            </div>
+            <div>
+              <span>直接成本</span>
+              <strong id="directTotalValue">—</strong>
+              <small id="directRateValue">—</small>
+            </div>
+            <div>
+              <span>分摊成本</span>
+              <strong id="allocationTotalValue">—</strong>
+              <small id="allocationRateValue">—</small>
+            </div>
+          </div>
+
+          <div class="cost-visual" aria-labelledby="costVisualTitle">
+            <div>
+              <span id="costVisualTitle">售价去向</span>
+              <small id="costVisualScale">按售价占比</small>
+            </div>
+            <div class="cost-track" id="costTrack" role="img" aria-label="直接成本、分摊成本与净利润占比">
+              <span id="directBar" class="bar-direct"></span>
+              <span id="allocationBar" class="bar-allocation"></span>
+              <span id="profitBar" class="bar-profit"></span>
+            </div>
+            <div class="legend-row">
+              <span><i class="legend-direct"></i>直接成本</span>
+              <span><i class="legend-allocation"></i>分摊</span>
+              <span><i class="legend-profit"></i>净利</span>
+            </div>
+          </div>
+
+          <div class="breakdown-wrap">
+            <table class="breakdown-table">
+              <thead><tr><th>项目</th><th>金额</th><th>占售价</th></tr></thead>
+              <tbody id="breakdownBody"></tbody>
+            </table>
+          </div>
+
+          <div id="warningList" class="warning-list" hidden></div>
+
+          <div class="result-actions">
+            <button class="button button-primary" id="copyImageButton" type="button">复制为图片</button>
+            <button class="button button-dark" id="exportExcelButton" type="button">导出 Excel</button>
+          </div>
+          <p class="result-footnote">导出数据只在当前浏览器处理，不会上传。</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="liveRegion" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="engine.js"></script>
+  <script src="export.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
